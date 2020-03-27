@@ -5,14 +5,14 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Profunctor (dimap)
-import Data.Profunctor.Monoidal (class Semigroupal, class Unital, demux, initial, poly, switch)
+import Data.Profunctor.Monoidal (class Semigroupal, class Unital, demux, initial, mono, poly, splice, switch)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj, prj)
 import Data.Variant.Internal (RLProxy(..))
 import Prim.Row (class Cons)
 import Prim.RowList (class RowToList, kind RowList)
-import Record (get)
+import Record (get, set)
 import Type.RowList as RL
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -104,6 +104,41 @@ foldSwitch :: forall rl ril rol r ri ro p
            -> p (Record ri) (Variant ro)
 foldSwitch r = foldSwitchImpl (RLProxy :: RLProxy rl) (RLProxy :: RLProxy ril) (RLProxy :: RLProxy rol) r
 
+class 
+  ( Unital (->) Void Unit Unit p
+  , Semigroupal (->) Either Tuple Tuple p
+  ) <= FoldSplice (rl :: RowList) (ril :: RowList) (rol :: RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p
+  | rl -> p ril rol
+  where
+  foldSpliceImpl :: RLProxy rl
+                 -> RLProxy ril
+                 -> RLProxy rol
+                 -> Record r
+                 -> p (Variant ri) (Record ro)
+
+instance emptyFoldSplice ::
+  ( Unital (->) Void Unit Unit p
+  , Semigroupal (->) Either Tuple Tuple p
+  ) => FoldSplice RL.Nil RL.Nil RL.Nil r ri ro p
+  where
+  foldSpliceImpl _ _ _ _ = dimap unsafeCoerce (const $ unsafeCoerce {}) mono
+
+instance stepFoldSplice ::
+  ( IsSymbol x
+  , Cons x (p i o) r' r
+  , Cons x i ri' ri
+  , Cons x o ro' ro
+  , FoldSplice rl ril rol r ri ro p
+  ) => FoldSplice (RL.Cons x (p i o) rl) (RL.Cons x i ril) (RL.Cons x o rol) r ri ro p
+  where
+  foldSpliceImpl _ _ _ r = dimap (projectE k) (embedTR k) $ splice (get k r) rest
+    where
+    k :: SProxy x
+    k = SProxy
+
+    rest :: p (Variant ri) (Record ro)
+    rest = foldSpliceImpl (RLProxy :: RLProxy rl) (RLProxy :: RLProxy ril) (RLProxy :: RLProxy rol) r
+
 projectE :: forall s i r' r. IsSymbol s => Cons s i r' r => SProxy s -> Variant r -> Either i (Variant r)
 projectE l v = case prj l v of
   Just i -> Left i
@@ -116,3 +151,6 @@ injectE l e = case e of
 
 getTR :: forall s i r' r. IsSymbol s => Cons s i r' r => SProxy s -> Record r -> Tuple i (Record r)
 getTR s r = Tuple (get s r) r
+
+embedTR :: forall s o r' r. IsSymbol s => Cons s o r' r => SProxy s -> Tuple o (Record r) -> Record r
+embedTR s (Tuple o r) = set s o r

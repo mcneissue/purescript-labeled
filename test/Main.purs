@@ -43,8 +43,8 @@ instance switchyStar :: Plus f => Unital (->) Unit Void Unit (Star' f) where
 test1 :: forall f x y. Foldable f => Show x => Fn (Variant (a :: x, b :: f y)) (Variant (a :: String, b :: Int))
 test1 = foldDemux { a: Fn show, b: Fn length }
 
-test2 :: forall f b. Applicative f => Plus f => Star' f { a :: b } (Variant (a :: b ))
-test2 = foldSwitch {a: Star' $ Star \x -> pure x }
+test2 :: forall f b. Applicative f => Plus f => Star' f { a :: b, b :: b } (Variant (a :: b, b :: Tuple b b ))
+test2 = foldSwitch {a: Star' $ Star \x -> pure x, b: Star' $ Star \x -> Tuple <$> pure x <*> pure x }
 
 main :: Effect Unit
 main = do
