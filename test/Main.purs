@@ -10,14 +10,17 @@ import Data.Foldable (class Foldable, length)
 import Data.Profunctor (class Profunctor, dimap)
 import Data.Profunctor.Monoidal (class Semigroupal, class Unital)
 import Data.Profunctor.Star (Star(..))
-import Data.Profunctor.Traverse (foldSwitch, foldDemux) -- foldSwitch)
+import Data.Profunctor.Traverse (foldSwitch, foldDemux)
 import Data.Tuple (Tuple(..))
-import Data.Variant (Variant)
+import Data.Variant (SProxy(..), Variant, inj)
 import Effect (Effect)
-import Effect.Class.Console (log)
+import Effect.Console (logShow)
 
 -- TODO Add these instances upstream
 newtype Fn a b = Fn (a -> b)
+
+runFn :: forall a b. Fn a b -> a -> b
+runFn (Fn f) = f
 
 instance profunctorFn :: Profunctor Fn where
   dimap f g (Fn x) = Fn $ dimap f g x
@@ -29,6 +32,9 @@ instance demuxativeFn :: Unital (->) Void Void Unit Fn where
   punit _ = Fn absurd
 
 newtype Star' f a b = Star' (Star f a b)
+
+runStar :: forall f a b. Star' f a b -> a -> f b
+runStar (Star' (Star f)) = f
 
 instance profunctorStar :: Functor f => Profunctor (Star' f) where
   dimap f g (Star' x) = Star' $ dimap f g x
@@ -42,10 +48,11 @@ instance switchyStar :: Plus f => Unital (->) Unit Void Unit (Star' f) where
 test1 :: forall f x y. Foldable f => Show x => Fn (Variant (a :: x, b :: f y)) (Variant (a :: String, b :: Int))
 test1 = foldDemux { a: Fn show, b: Fn length }
 
-test2 :: forall f b. Applicative f => Plus f => Star' f { a :: b, b :: b } (Variant (a :: b, b :: Tuple b b ))
-test2 = foldSwitch {a: Star' $ Star \x -> pure x, b: Star' $ Star \x -> Tuple <$> pure x <*> pure x }
+test2 :: forall b c. Star' Array { a :: b, b :: c } (Variant (a :: b, b :: Tuple c c ))
+test2 = foldSwitch {a: Star' $ Star \x -> [x, x, x], b: Star' $ Star \x -> Tuple <$> pure x <*> pure x }
 
 main :: Effect Unit
 main = do
-  log "🍝"
-  log "You should add some tests."
+  logShow $ runFn test1 (inj (SProxy :: SProxy "a") 42 :: Variant (a :: Int, b :: Array Int))
+  logShow $ runFn test1 (inj (SProxy :: SProxy "b") [1,2,3] :: Variant (a :: Int, b :: Array Int))
+  logShow $ runStar test2 { a: 1, b: "lol" }
