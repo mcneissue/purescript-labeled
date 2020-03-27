@@ -10,12 +10,11 @@ import Data.Foldable (class Foldable, length)
 import Data.Profunctor (class Profunctor, dimap)
 import Data.Profunctor.Monoidal (class Semigroupal, class Unital)
 import Data.Profunctor.Star (Star(..))
-import Data.Profunctor.Traverse (foldDemux, foldSwitch)
+import Data.Profunctor.Traverse (foldSwitch, foldDemux) -- foldSwitch)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant)
 import Effect (Effect)
 import Effect.Class.Console (log)
-
 
 -- TODO Add these instances upstream
 newtype Fn a b = Fn (a -> b)
