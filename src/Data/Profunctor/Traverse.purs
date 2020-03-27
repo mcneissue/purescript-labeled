@@ -5,7 +5,7 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Profunctor (dimap)
-import Data.Profunctor.Monoidal (class Semigroupal, class Unital, demux, initial, mono, poly, splice, switch)
+import Data.Profunctor.Monoidal (class Semigroupal, class Unital, demux, initial, mono, poly, splice, switch, terminal, mux)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj, prj)
@@ -138,6 +138,41 @@ instance stepFoldSplice ::
 
     rest :: p (Variant ri) (Record ro)
     rest = foldSpliceImpl (RLProxy :: RLProxy rl) (RLProxy :: RLProxy ril) (RLProxy :: RLProxy rol) r
+
+class 
+  ( Unital (->) Unit Unit Unit p
+  , Semigroupal (->) Tuple Tuple Tuple p
+  ) <= FoldMux (rl :: RowList) (ril :: RowList) (rol :: RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p
+  | rl -> p ril rol
+  where
+  foldMuxImpl :: RLProxy rl
+              -> RLProxy ril
+              -> RLProxy rol
+              -> Record r
+              -> p (Record ri) (Record ro)
+
+instance emptyFoldMux ::
+  ( Unital (->) Unit Unit Unit p
+  , Semigroupal (->) Tuple Tuple Tuple p
+  ) => FoldMux RL.Nil RL.Nil RL.Nil r ri ro p
+  where
+  foldMuxImpl _ _ _ _ = dimap identity (const $ unsafeCoerce {}) terminal
+
+instance stepFoldMux ::
+  ( IsSymbol x
+  , Cons x (p i o) r' r
+  , Cons x i ri' ri
+  , Cons x o ro' ro
+  , FoldMux rl ril rol r ri ro p
+  ) => FoldMux (RL.Cons x (p i o) rl) (RL.Cons x i ril) (RL.Cons x o rol) r ri ro p
+  where
+  foldMuxImpl _ _ _ r = dimap (getTR k) (embedTR k) $ mux (get k r) rest
+    where
+    k :: SProxy x
+    k = SProxy
+
+    rest :: p (Record ri) (Record ro)
+    rest = foldMuxImpl (RLProxy :: RLProxy rl) (RLProxy :: RLProxy ril) (RLProxy :: RLProxy rol) r
 
 projectE :: forall s i r' r. IsSymbol s => Cons s i r' r => SProxy s -> Variant r -> Either i (Variant r)
 projectE l v = case prj l v of
