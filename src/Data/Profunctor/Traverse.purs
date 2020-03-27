@@ -11,83 +11,98 @@ import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj, prj)
 import Data.Variant.Internal (RLProxy(..))
 import Prim.Row (class Cons)
-import Prim.RowList as RL
+import Prim.RowList (class RowToList, kind RowList)
 import Record (get)
+import Type.RowList as RL
 import Unsafe.Coerce (unsafeCoerce)
 
 class 
   ( Unital (->) Void Void Unit p
   , Semigroupal (->) Either Either Tuple p
-  ) <= FoldDemux (xs :: RL.RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p 
+  ) <= FoldDemux (rl :: RL.RowList) (ril :: RL.RowList) (rol :: RL.RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p
+  | rl -> p ril rol
   where
-  foldDemuxImpl ::  RLProxy xs -> Record r -> p (Variant ri) (Variant ro)
+  foldDemuxImpl :: RLProxy rl
+                -> RLProxy ril
+                -> RLProxy rol 
+                -> Record r 
+                -> p (Variant ri) (Variant ro)
 
 instance emptyFoldDemux :: 
   ( Unital (->) Void Void Unit p
   , Semigroupal (->) Either Either Tuple p
-  ) => FoldDemux RL.Nil r ri ro p 
+  ) => FoldDemux RL.Nil RL.Nil RL.Nil r ri ro p 
   where
-  foldDemuxImpl _ _ = dimap unsafeCoerce absurd initial -- :S
+  foldDemuxImpl _ _ _ _ = dimap unsafeCoerce absurd initial -- :S
 
 instance stepFoldDemux ::
   ( IsSymbol x
   , Cons x (p i o) r' r
   , Cons x i ri' ri
   , Cons x o ro' ro
-  , FoldDemux xs r ri ro p
-  ) => FoldDemux (RL.Cons x (p i o) xs) r ri ro p
+  , FoldDemux rl ril rol r ri ro p
+  ) => FoldDemux (RL.Cons x (p i o) rl) (RL.Cons x i ril) (RL.Cons x o rol) r ri ro p
   where
-  foldDemuxImpl _ r = dimap (projectE k) (injectE k) $ demux (get k r) rest
+  foldDemuxImpl _ _ _ r = dimap (projectE k) (injectE k) (demux (get k r) rest)
     where
     k :: SProxy x
     k = SProxy
     
     rest :: p (Variant ri) (Variant ro)
-    rest = foldDemuxImpl (RLProxy :: RLProxy xs) r
+    rest = foldDemuxImpl (RLProxy :: RLProxy rl) (RLProxy :: RLProxy ril) (RLProxy :: RLProxy rol) r
 
-foldDemux :: forall r ri ro xs p
-           . RL.RowToList r xs
-          => FoldDemux xs r ri ro p
+foldDemux :: forall rl ril rol r ri ro p
+           . RL.RowToList r rl
+          => RL.RowToList ri ril
+          => RL.RowToList ro rol
+          => FoldDemux rl ril rol r ri ro p
           => Record r
           -> p (Variant ri) (Variant ro)
-foldDemux = foldDemuxImpl (RLProxy :: RLProxy xs)
+foldDemux r = foldDemuxImpl (RLProxy :: RLProxy rl) (RLProxy :: RLProxy ril) (RLProxy :: RLProxy rol) r
 
 class 
   ( Unital (->) Unit Void Unit p
   , Semigroupal (->) Tuple Either Tuple p
-  ) <= FoldSwitch (xs :: RL.RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p
+  ) <= FoldSwitch (rl :: RowList) (ril :: RowList) (rol :: RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p
+  | rl -> p ril rol
   where  
-  foldSwitchImpl :: RLProxy xs -> Record r -> p (Record ri) (Variant ro)
+  foldSwitchImpl :: RLProxy rl
+                 -> RLProxy ril
+                 -> RLProxy rol 
+                 -> Record r  
+                 -> p (Record ri) (Variant ro)
 
 instance emptyFoldSwitch :: 
   ( Unital (->) Unit Void Unit p
   , Semigroupal (->) Tuple Either Tuple p
-  ) => FoldSwitch RL.Nil r ri ro p 
+  ) => FoldSwitch RL.Nil RL.Nil RL.Nil r ri ro p 
   where
-  foldSwitchImpl _ _ = dimap (const unit) absurd poly
+  foldSwitchImpl _ _ _ _ = dimap (const unit) absurd poly
 
 instance stepFoldSwitch ::
   ( IsSymbol x
   , Cons x (p i o) r' r
   , Cons x i ri' ri
   , Cons x o ro' ro
-  , FoldSwitch xs r ri ro p
-  ) => FoldSwitch (RL.Cons x (p i o) xs) r ri ro p
+  , FoldSwitch rl ril rol r ri ro p
+  ) => FoldSwitch (RL.Cons x (p i o) rl) (RL.Cons x i ril) (RL.Cons x o rol) r ri ro p
   where
-  foldSwitchImpl _ r = dimap (getTR k) (injectE k) $ switch (get k r) rest
+  foldSwitchImpl _ _ _ r = dimap (getTR k) (injectE k) $ switch (get k r) rest
     where
     k :: SProxy x
     k = SProxy
 
     rest :: p (Record ri) (Variant ro)
-    rest = foldSwitchImpl (RLProxy :: RLProxy xs) r
+    rest = foldSwitchImpl (RLProxy :: RLProxy rl) (RLProxy :: RLProxy ril) (RLProxy :: RLProxy rol) r
 
-foldSwitch :: forall r ri ro xs p
-            . RL.RowToList r xs
-           => FoldSwitch xs r ri ro p
+foldSwitch :: forall rl ril rol r ri ro p
+            . RL.RowToList r rl
+           => RowToList ri ril
+           => RowToList ro rol
+           => FoldSwitch rl ril rol r ri ro p
            => Record r
            -> p (Record ri) (Variant ro)
-foldSwitch = foldSwitchImpl (RLProxy :: RLProxy xs)
+foldSwitch r = foldSwitchImpl (RLProxy :: RLProxy rl) (RLProxy :: RLProxy ril) (RLProxy :: RLProxy rol) r
 
 projectE :: forall s i r' r. IsSymbol s => Cons s i r' r => SProxy s -> Variant r -> Either i (Variant r)
 projectE l v = case prj l v of
