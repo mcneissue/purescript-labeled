@@ -133,7 +133,7 @@ let additions =
               , dependencies =
                   manifest.dependencies
               , version =
-                  "master"
+                  "3264857b5f71f50d7fd02f24feb0734aebd50fcf"
               }
       }
 
