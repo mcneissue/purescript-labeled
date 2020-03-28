@@ -121,16 +121,20 @@ let additions =
 let upstream =
       https://github.com/purescript/package-sets/releases/download/psc-0.13.6-20200309/packages.dhall sha256:9221987b4e7ea99ccd0efbe056f7bebc872cd92e0058efe5baa181d73359e7b3
 
-let overrides =
-    { profunctor = 
-            upstream.profunctor
-        //  { repo =
-                "https://github.com/masaeedu/purescript-profunctor.git"
-            , version =
-                "3a9fb4082837aecfef6a780cc0ff5539c45efa1b"
-            }
-    }
+let overrides = {=}
 
-let additions = {=}
+let additions =
+      { profunctor-monoidal =
+          let manifest =
+                https://raw.githubusercontent.com/masaeedu/purescript-profunctor-monoidal/master/spago.dhall sha256:56d8aca266bb1d5e0d56fa79e1466d47b16140e781a5d9d24e1d2ae38234941e
+          
+          in  { repo =
+                  "https://github.com/masaeedu/purescript-profunctor-monoidal.git"
+              , dependencies =
+                  manifest.dependencies
+              , version =
+                  "master"
+              }
+      }
 
 in  upstream // overrides // additions
