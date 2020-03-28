@@ -124,16 +124,16 @@ let upstream =
 let overrides = {=}
 
 let additions =
-      { profunctor-monoidal =
+      { profunctor-extra =
           let manifest =
-                https://raw.githubusercontent.com/masaeedu/purescript-profunctor-monoidal/master/spago.dhall sha256:56d8aca266bb1d5e0d56fa79e1466d47b16140e781a5d9d24e1d2ae38234941e
+                https://raw.githubusercontent.com/masaeedu/purescript-profunctor-extra/master/spago.dhall sha256:fe28eb0b1ac7542090ab389ff9b1145d0d5ab8e1e42274b860dbc95fa3021a72
           
           in  { repo =
-                  "https://github.com/masaeedu/purescript-profunctor-monoidal.git"
+                  "https://github.com/masaeedu/purescript-profunctor-extra.git"
               , dependencies =
                   manifest.dependencies
               , version =
-                  "3264857b5f71f50d7fd02f24feb0734aebd50fcf"
+                  "691eef88ceb830c04f025305d37457f8c048c4bf"
               }
       }
 

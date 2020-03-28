@@ -5,7 +5,7 @@ You can edit this file as you like.
 { name =
     "my-project"
 , dependencies =
-    [ "effect", "console", "psci-support", "record", "variant", "profunctor", "typelevel-prelude", "profunctor-monoidal" ]
+    [ "effect", "console", "psci-support", "record", "variant", "profunctor", "typelevel-prelude", "profunctor-extra" ]
 , packages =
     ./packages.dhall
 , sources =
