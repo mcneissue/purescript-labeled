@@ -44,10 +44,10 @@ class
   , Semigroupal (->) t1 t2 Tuple p
   , ComputeExtension t1 et1 u1
   , ComputeExtension t2 et2 u2
-  ) <= FoldMonoidal t1 t2 u1 u2 et1 et2 (rl :: RL.RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p
+  ) <= SequenceMonoidal t1 t2 u1 u2 et1 et2 (rl :: RL.RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p
   | r -> p ri ro
   where
-  foldMonoidalImpl 
+  sequenceMonoidalImpl 
     :: Proxy3 t1
     -> Proxy3 t2
     -> Proxy u1
@@ -56,60 +56,60 @@ class
     -> Record r 
     -> p (et1 ri) (et2 ro)
 
-instance emptyFoldMonoidal ::
+instance emptySequenceMonoidal ::
   ( Unital (->) u1 u2 Unit p
   , Semigroupal (->) t1 t2 Tuple p
   , ComputeExtension t1 et1 u1
   , ComputeExtension t2 et2 u2
-  ) => FoldMonoidal t1 t2 u1 u2 et1 et2 RL.Nil r () () p
+  ) => SequenceMonoidal t1 t2 u1 u2 et1 et2 RL.Nil r () () p
   where
-  foldMonoidalImpl pt1 pt2 _ _ _ _ = dimap (contraElim pt1) (elim pt2) (punit unit :: p u1 u2)
+  sequenceMonoidalImpl pt1 pt2 _ _ _ _ = dimap (contraElim pt1) (elim pt2) (punit unit :: p u1 u2)
 
-instance stepFoldMonoidal ::
+instance stepSequenceMonoidal ::
   ( IsSymbol x
   , Cons x (p i o) r' r
   , Cons x i ri' ri
   , Cons x o ro' ro
   , Lacks x ro'
   , Lacks x ri'
-  , FoldMonoidal t1 t2 u1 u2 et1 et2 rl r ri' ro' p
-  ) => FoldMonoidal t1 t2 u1 u2 et1 et2 (RL.Cons x (p i o) rl) r ri ro p
+  , SequenceMonoidal t1 t2 u1 u2 et1 et2 rl r ri' ro' p
+  ) => SequenceMonoidal t1 t2 u1 u2 et1 et2 (RL.Cons x (p i o) rl) r ri ro p
   where
-  foldMonoidalImpl pt1 pt2 pu1 pu2 _ r = dimap (project k) (embed k) (pzip (Tuple (get k r) rest) :: p (t1 i (et1 ri')) (t2 o (et2 ro')))
+  sequenceMonoidalImpl pt1 pt2 pu1 pu2 _ r = dimap (project k) (embed k) (pzip (Tuple (get k r) rest) :: p (t1 i (et1 ri')) (t2 o (et2 ro')))
     where
     k :: SProxy x
     k = SProxy
     rest :: p (et1 ri') (et2 ro')
-    rest = foldMonoidalImpl pt1 pt2 pu1 pu2 (RLProxy :: RLProxy rl) r
+    rest = sequenceMonoidalImpl pt1 pt2 pu1 pu2 (RLProxy :: _ rl) r
 
-foldMux
+sequenceMux
   :: forall r rl ri ro p
    . RL.RowToList r rl
-  => FoldMonoidal Tuple Tuple Unit Unit Record Record rl r ri ro p
+  => SequenceMonoidal Tuple Tuple Unit Unit Record Record rl r ri ro p
   => Record r
   -> p (Record ri) (Record ro)
-foldMux r = foldMonoidalImpl (Proxy3 :: Proxy3 Tuple) (Proxy3 :: Proxy3 Tuple) (Proxy :: Proxy Unit) (Proxy :: Proxy Unit) (RLProxy :: RLProxy rl) r
+sequenceMux r = sequenceMonoidalImpl (Proxy3 :: _ Tuple) (Proxy3 :: _ Tuple) (Proxy :: _ Unit) (Proxy :: _ Unit) (RLProxy :: _ rl) r
 
-foldDemux
+sequenceDemux
   :: forall r rl ri ro p
    . RL.RowToList r rl
-  => FoldMonoidal Either Either Void Void Variant Variant rl r ri ro p
+  => SequenceMonoidal Either Either Void Void Variant Variant rl r ri ro p
   => Record r
   -> p (Variant ri) (Variant ro)
-foldDemux r = foldMonoidalImpl (Proxy3 :: Proxy3 Either) (Proxy3 :: Proxy3 Either) (Proxy :: Proxy Void) (Proxy :: Proxy Void) (RLProxy :: RLProxy rl) r
+sequenceDemux r = sequenceMonoidalImpl (Proxy3 :: _ Either) (Proxy3 :: _ Either) (Proxy :: _ Void) (Proxy :: _ Void) (RLProxy :: _ rl) r
 
-foldSwitch
+sequenceSwitch
   :: forall r rl ri ro p
    . RL.RowToList r rl
-  => FoldMonoidal Tuple Either Unit Void Record Variant rl r ri ro p
+  => SequenceMonoidal Tuple Either Unit Void Record Variant rl r ri ro p
   => Record r
   -> p (Record ri) (Variant ro)
-foldSwitch r = foldMonoidalImpl (Proxy3 :: Proxy3 Tuple) (Proxy3 :: Proxy3 Either) (Proxy :: Proxy Unit) (Proxy :: Proxy Void) (RLProxy :: RLProxy rl) r
+sequenceSwitch r = sequenceMonoidalImpl (Proxy3 :: _ Tuple) (Proxy3 :: _ Either) (Proxy :: _ Unit) (Proxy :: _ Void) (RLProxy :: _ rl) r
 
-foldSplice
+sequenceSplice
   :: forall r rl ri ro p
    . RL.RowToList r rl
-  => FoldMonoidal Either Tuple Void Unit Variant Record rl r ri ro p
+  => SequenceMonoidal Either Tuple Void Unit Variant Record rl r ri ro p
   => Record r
   -> p (Variant ri) (Record ro)
-foldSplice r = foldMonoidalImpl (Proxy3 :: Proxy3 Either) (Proxy3 :: Proxy3 Tuple) (Proxy :: Proxy Void) (Proxy :: Proxy Unit) (RLProxy :: RLProxy rl) r
+sequenceSplice r = sequenceMonoidalImpl (Proxy3 :: _ Either) (Proxy3 :: _ Tuple) (Proxy :: _ Void) (Proxy :: _ Unit) (RLProxy :: _ rl) r
