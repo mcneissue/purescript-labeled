@@ -10,7 +10,7 @@ import Data.Foldable (class Foldable, length)
 import Data.Profunctor (class Profunctor, dimap)
 import Data.Profunctor.Monoidal (class Semigroupal, class Unital)
 import Data.Profunctor.Star (Star(..))
-import Data.Profunctor.Traverse (foldSwitch, foldDemux)
+import Data.Profunctor.Traverse (sequenceSwitch, sequenceDemux)
 import Data.Tuple (Tuple(..))
 import Data.Variant (SProxy(..), Variant, inj)
 import Effect (Effect)
@@ -46,10 +46,10 @@ instance switchyStar :: Plus f => Unital (->) Unit Void Unit (Star' f) where
   punit _ = Star' $ Star \_ -> empty
 
 test1 :: forall f x y. Foldable f => Show x => Fn (Variant (a :: x, b :: f y)) (Variant (a :: String, b :: Int))
-test1 = foldDemux { a: Fn show, b: Fn length }
+test1 = sequenceDemux { a: Fn show, b: Fn length }
 
 test2 :: forall b c. Star' Array { a :: b, b :: c } (Variant (a :: b, b :: Tuple c c ))
-test2 = foldSwitch {a: Star' $ Star \x -> [x, x, x], b: Star' $ Star \x -> Tuple <$> pure x <*> pure x }
+test2 = sequenceSwitch {a: Star' $ Star \x -> [x, x, x], b: Star' $ Star \x -> Tuple <$> pure x <*> pure x }
 
 main :: Effect Unit
 main = do
