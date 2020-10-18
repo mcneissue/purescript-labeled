@@ -10,4 +10,6 @@ You can edit this file as you like.
     ./packages.dhall
 , sources =
     [ "src/**/*.purs", "test/**/*.purs" ]
+, repository = "https://github.com/mcneissue/purescript-profunctor-traverse"
+, license = "MIT"
 }
