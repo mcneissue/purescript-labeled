@@ -15,6 +15,9 @@ import Type.Proxy (Proxy(..), Proxy3(..))
 import Type.RowList as RL
 import Unsafe.Coerce (unsafeCoerce)
 
+class BiInvariant (f :: Type -> Type -> Type) where
+  biinvmap :: forall a a' b b'. (a -> a') -> (a' -> a) -> (b -> b') -> (b' -> b) -> f a b -> f a' b'
+
 class ComputeExtension (t :: Type -> Type -> Type) (e :: # Type -> Type) (u :: Type) | t -> e u where
   embed :: forall s a r r'. IsSymbol s => Lacks s r' => Cons s a r' r => SProxy s -> t a (e r') -> e r
   project :: forall s a r r'. IsSymbol s => Lacks s r' => Cons s a r' r => SProxy s -> e r -> t a (e r')
@@ -40,9 +43,7 @@ instance computeExtensionEither :: ComputeExtension Either Variant Void where
   elim _ = absurd
 
 class
-  ( Unital (->) u1 u2 Unit p
-  , Semigroupal (->) t1 t2 Tuple p
-  , ComputeExtension t1 et1 u1
+  ( ComputeExtension t1 et1 u1
   , ComputeExtension t2 et2 u2
   ) <= SequenceMonoidal t1 t2 u1 u2 et1 et2 (rl :: RL.RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p
   | r -> p ri ro
@@ -57,16 +58,20 @@ class
     -> p (et1 ri) (et2 ro)
 
 instance emptySequenceMonoidal ::
-  ( Unital (->) u1 u2 Unit p
+  ( BiInvariant p
+  , Unital (->) u1 u2 Unit p
   , Semigroupal (->) t1 t2 Tuple p
   , ComputeExtension t1 et1 u1
   , ComputeExtension t2 et2 u2
   ) => SequenceMonoidal t1 t2 u1 u2 et1 et2 RL.Nil r () () p
   where
-  sequenceMonoidal pt1 pt2 _ _ _ _ = dimap (contraElim pt1) (elim pt2) (punit unit :: p u1 u2)
+  sequenceMonoidal pt1 pt2 _ _ _ _ = biinvmap (elim pt1) (contraElim pt1) (elim pt2) (contraElim pt2) (punit unit :: p u1 u2)
 
 instance stepSequenceMonoidal ::
-  ( IsSymbol x
+  ( BiInvariant p
+  , Unital (->) u1 u2 Unit p
+  , Semigroupal (->) t1 t2 Tuple p
+  , IsSymbol x
   , Cons x (p i o) r' r
   , Cons x i ri' ri
   , Cons x o ro' ro
@@ -75,7 +80,7 @@ instance stepSequenceMonoidal ::
   , SequenceMonoidal t1 t2 u1 u2 et1 et2 rl r ri' ro' p
   ) => SequenceMonoidal t1 t2 u1 u2 et1 et2 (RL.Cons x (p i o) rl) r ri ro p
   where
-  sequenceMonoidal pt1 pt2 pu1 pu2 _ r = dimap (project k) (embed k) (pzip (Tuple (get k r) rest) :: p (t1 i (et1 ri')) (t2 o (et2 ro')))
+  sequenceMonoidal pt1 pt2 pu1 pu2 _ r = biinvmap (embed k) (project k) (embed k) (project k) (pzip (Tuple (get k r) rest) :: p (t1 i (et1 ri')) (t2 o (et2 ro')))
     where
     k :: SProxy x
     k = SProxy
