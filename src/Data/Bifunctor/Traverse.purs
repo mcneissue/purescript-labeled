@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Bifunctor.Invariant (class Invariant, invmap)
 import Data.Either (Either(..))
-import Data.Profunctor.Monoidal (class Semigroupal, class Unital, punit, pzip)
+import Data.Bifunctor.Monoidal (class Semigroupal, class Unital, combine, introduce)
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, case_, inj, on)
@@ -62,7 +62,7 @@ instance emptySequenceMonoidal ::
   , ComputeExtension t2 et2 u2
   ) => SequenceMonoidal t1 t2 u1 u2 et1 et2 RL.Nil r () () p
   where
-  sequenceMonoidal pt1 pt2 _ _ _ _ = invmap (elim pt1) (contraElim pt1) (elim pt2) (contraElim pt2) (punit unit :: p u1 u2)
+  sequenceMonoidal pt1 pt2 _ _ _ _ = invmap (elim pt1) (contraElim pt1) (elim pt2) (contraElim pt2) (introduce unit :: p u1 u2)
 
 instance stepSequenceMonoidal ::
   ( Invariant p
@@ -77,7 +77,7 @@ instance stepSequenceMonoidal ::
   , SequenceMonoidal t1 t2 u1 u2 et1 et2 rl r ri' ro' p
   ) => SequenceMonoidal t1 t2 u1 u2 et1 et2 (RL.Cons x (p i o) rl) r ri ro p
   where
-  sequenceMonoidal pt1 pt2 pu1 pu2 _ r = invmap (embed k) (project k) (embed k) (project k) (pzip (Tuple (get k r) rest) :: p (t1 i (et1 ri')) (t2 o (et2 ro')))
+  sequenceMonoidal pt1 pt2 pu1 pu2 _ r = invmap (embed k) (project k) (embed k) (project k) (combine (Tuple (get k r) rest) :: p (t1 i (et1 ri')) (t2 o (et2 ro')))
     where
     k :: SProxy x
     k = SProxy
@@ -90,7 +90,7 @@ sequenceMux
   => SequenceMonoidal Tuple Tuple Unit Unit Record Record rl r ri ro p
   => Record r
   -> p (Record ri) (Record ro)
-sequenceMux r = sequenceMonoidal (Proxy3 :: _ Tuple) (Proxy3 :: _ Tuple) (Proxy :: _ Unit) (Proxy :: _ Unit) (RLProxy :: _ rl) r
+sequenceMux = sequenceMonoidal (Proxy3 :: _ Tuple) (Proxy3 :: _ Tuple) (Proxy :: _ Unit) (Proxy :: _ Unit) (RLProxy :: _ rl)
 
 sequenceDemux
   :: ∀ r rl ri ro p
@@ -98,7 +98,7 @@ sequenceDemux
   => SequenceMonoidal Either Either Void Void Variant Variant rl r ri ro p
   => Record r
   -> p (Variant ri) (Variant ro)
-sequenceDemux r = sequenceMonoidal (Proxy3 :: _ Either) (Proxy3 :: _ Either) (Proxy :: _ Void) (Proxy :: _ Void) (RLProxy :: _ rl) r
+sequenceDemux = sequenceMonoidal (Proxy3 :: _ Either) (Proxy3 :: _ Either) (Proxy :: _ Void) (Proxy :: _ Void) (RLProxy :: _ rl)
 
 sequenceSwitch
   :: ∀ r rl ri ro p
@@ -106,7 +106,7 @@ sequenceSwitch
   => SequenceMonoidal Tuple Either Unit Void Record Variant rl r ri ro p
   => Record r
   -> p (Record ri) (Variant ro)
-sequenceSwitch r = sequenceMonoidal (Proxy3 :: _ Tuple) (Proxy3 :: _ Either) (Proxy :: _ Unit) (Proxy :: _ Void) (RLProxy :: _ rl) r
+sequenceSwitch = sequenceMonoidal (Proxy3 :: _ Tuple) (Proxy3 :: _ Either) (Proxy :: _ Unit) (Proxy :: _ Void) (RLProxy :: _ rl)
 
 sequenceSplice
   :: ∀ r rl ri ro p
@@ -114,4 +114,4 @@ sequenceSplice
   => SequenceMonoidal Either Tuple Void Unit Variant Record rl r ri ro p
   => Record r
   -> p (Variant ri) (Record ro)
-sequenceSplice r = sequenceMonoidal (Proxy3 :: _ Either) (Proxy3 :: _ Tuple) (Proxy :: _ Void) (Proxy :: _ Unit) (RLProxy :: _ rl) r
+sequenceSplice = sequenceMonoidal (Proxy3 :: _ Either) (Proxy3 :: _ Tuple) (Proxy :: _ Void) (Proxy :: _ Unit) (RLProxy :: _ rl)
