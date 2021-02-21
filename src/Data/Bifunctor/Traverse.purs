@@ -1,4 +1,4 @@
-module Data.Profunctor.Traverse where
+module Data.Bifunctor.Traverse where
 
 import Prelude
 
