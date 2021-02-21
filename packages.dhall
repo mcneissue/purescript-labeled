@@ -124,12 +124,12 @@ let overrides = {=}
 let additions =
       { profunctor-extra =
           let manifest =
-                https://raw.githubusercontent.com/mcneissue/purescript-profunctor-extra/v0.4.0/spago.dhall sha256:9052f2ac1e76d2d564da57333276ad2d7e83c8ff0b21d94dbebacfe5dce42489
+                https://raw.githubusercontent.com/mcneissue/purescript-profunctor-extra/v0.5.0/spago.dhall sha256:9052f2ac1e76d2d564da57333276ad2d7e83c8ff0b21d94dbebacfe5dce42489
 
           in  { repo =
                   "https://github.com/mcneissue/purescript-profunctor-extra.git"
               , dependencies = manifest.dependencies
-              , version = "v0.4.0"
+              , version = "v0.5.0"
               }
       }
 
