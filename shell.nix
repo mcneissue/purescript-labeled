@@ -7,5 +7,6 @@ pkgs.mkShell {
     purescript
     nodejs
     spago
+    nodePackages.purescript-language-server
   ];
 }
