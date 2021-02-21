@@ -10,7 +10,7 @@ import Data.Foldable (class Foldable, length)
 import Data.Profunctor (class Profunctor, dimap)
 import Data.Profunctor.Monoidal (class Semigroupal, class Unital)
 import Data.Profunctor.Star (Star(..))
-import Data.Profunctor.Traverse (sequenceSwitch, sequenceDemux)
+import Data.Profunctor.Traverse (class BiInvariant, sequenceDemux, sequenceSwitch)
 import Data.Tuple (Tuple(..))
 import Data.Variant (SProxy(..), Variant, inj)
 import Effect (Effect)
@@ -18,6 +18,10 @@ import Effect.Console (logShow)
 
 -- TODO Add these instances upstream
 newtype Fn a b = Fn (a -> b)
+
+instance biinvariantFn :: BiInvariant Fn
+  where
+  biinvmap _ g h _ = dimap g h
 
 runFn :: forall a b. Fn a b -> a -> b
 runFn (Fn f) = f
@@ -38,6 +42,10 @@ runStar (Star' (Star f)) = f
 
 instance profunctorStar :: Functor f => Profunctor (Star' f) where
   dimap f g (Star' x) = Star' $ dimap f g x
+
+instance biinvariantStar :: Functor f => BiInvariant (Star' f)
+  where
+  biinvmap _ g h _ = dimap g h
 
 instance switchFn :: Alt f => Semigroupal (->) Tuple Either Tuple (Star' f) where
   pzip (Tuple (Star' (Star f)) (Star' (Star g))) = Star' $ Star \(Tuple a c) -> Either.choose (f a) (g c)
