@@ -5,13 +5,14 @@ import Prelude
 import Data.Bifunctor (rmap)
 import Data.Iterated (class LabeledTensor, contraElim, elim, embed, project, singleton, unsingleton)
 import Data.Symbol (class IsSymbol)
-import Data.Trifunctor.Invariant (class Invariant, invmap)
-import Data.Trifunctor.Monoidal (class Monoidal, class Semigroupal, combine, introduce)
 import Prim.Row (class Cons, class Lacks)
-import Type.Data.RowList (RLProxy)
-import Type.Prelude (class ListToRow)
+import Type.Data.RowList (RLProxy(..))
+import Type.Prelude (class ListToRow, class RowToList)
 import Type.RowList (Cons, Nil, kind RowList) as RL
 import Type.RowList.Extra (head, tail) as RL
+
+import Data.Trifunctor.Invariant (class Invariant, invmap)
+import Data.Trifunctor.Monoidal (class Monoidal, class Semigroupal, combine, introduce)
 
 class Sequence1
   (r1' :: # Type)
@@ -142,3 +143,25 @@ instance sequenceStep ::
   Sequence r1 r2 r3 ro (RL.Cons k (p a1 a2 a3) rl') p
   where
   sequence = sequence1
+
+-- Convenient not to have to explicitly pass the RowList
+sequence' ::
+  ∀ et1 et2 et3 eto
+    r1   r2  r3  ro
+    t1   t2  t3  to
+    i1   i2  i3  io
+    rl p.
+  RowToList ro rl =>
+  ListToRow rl ro =>
+
+  Sequence r1 r2 r3 ro rl p =>
+
+  LabeledTensor et1 t1 i1 (->) =>
+  LabeledTensor et2 t2 i2 (->) =>
+  LabeledTensor et3 t3 i3 (->) =>
+  LabeledTensor eto to io (->) =>
+
+  Monoidal (->) t1 i1 t2 i2 t3 i3 to io p =>
+  Invariant p =>
+  eto ro -> p (et1 r1) (et2 r2) (et3 r3)
+sequence' = sequence (RLProxy :: _ rl)

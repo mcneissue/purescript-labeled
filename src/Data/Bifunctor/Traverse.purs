@@ -5,17 +5,14 @@ import Prelude
 import Data.Bifunctor (rmap)
 import Data.Iterated (class LabeledTensor, contraElim, elim, embed, project, singleton, unsingleton)
 import Data.Symbol (class IsSymbol)
-import Data.Bifunctor.Invariant (class Invariant, invmap)
-import Data.Bifunctor.Monoidal (class Monoidal, class Semigroupal, combine, introduce)
 import Prim.Row (class Cons, class Lacks)
 import Type.Data.RowList (RLProxy(..))
 import Type.Prelude (class ListToRow, class RowToList)
 import Type.RowList (Cons, Nil, kind RowList) as RL
 import Type.RowList.Extra (head, tail) as RL
 
-import Data.Tuple (Tuple)
-import Data.Either (Either)
-import Data.Variant (Variant)
+import Data.Bifunctor.Invariant (class Invariant, invmap)
+import Data.Bifunctor.Monoidal (class Monoidal, class Semigroupal, combine, introduce)
 
 class Sequence1
   (r1' :: # Type)
@@ -134,38 +131,23 @@ instance sequenceStep ::
   where
   sequence = sequence1
 
-sequenceMux :: ∀ r1 r2 ro rl p.
+-- Convenient not to have to explicitly pass the RowList
+sequence' ::
+  ∀ et1 et2 eto
+    r1   r2  ro
+    t1   t2  to
+    i1   i2  io
+    rl p.
   RowToList ro rl =>
   ListToRow rl ro =>
-  Sequence r1 r2 ro rl p =>
-  Monoidal (->) Tuple Unit Tuple Unit Tuple Unit p =>
-  Invariant p =>
-  Record ro -> p (Record r1) (Record r2)
-sequenceMux = sequence (RLProxy :: _ rl)
 
-sequenceDemux :: ∀ r1 r2 ro rl p.
-  RowToList ro rl =>
-  ListToRow rl ro =>
   Sequence r1 r2 ro rl p =>
-  Monoidal (->) Either Void Either Void Tuple Unit p =>
-  Invariant p =>
-  Record ro -> p (Variant r1) (Variant r2)
-sequenceDemux = sequence (RLProxy :: _ rl)
 
-sequenceSwitch :: ∀ r1 r2 ro rl p.
-  RowToList ro rl =>
-  ListToRow rl ro =>
-  Sequence r1 r2 ro rl p =>
-  Monoidal (->) Tuple Unit Either Void Tuple Unit p =>
-  Invariant p =>
-  Record ro -> p (Record r1) (Variant r2)
-sequenceSwitch = sequence (RLProxy :: _ rl)
+  LabeledTensor et1 t1 i1 (->) =>
+  LabeledTensor et2 t2 i2 (->) =>
+  LabeledTensor eto to io (->) =>
 
-sequenceSplice :: ∀ r1 r2 ro rl p.
-  RowToList ro rl =>
-  ListToRow rl ro =>
-  Sequence r1 r2 ro rl p =>
-  Monoidal (->) Either Void Tuple Unit Tuple Unit p =>
+  Monoidal (->) t1 i1 t2 i2 to io p =>
   Invariant p =>
-  Record ro -> p (Variant r1) (Record r2)
-sequenceSplice = sequence (RLProxy :: _ rl)
+  eto ro -> p (et1 r1) (et2 r2)
+sequence' = sequence (RLProxy :: _ rl)
