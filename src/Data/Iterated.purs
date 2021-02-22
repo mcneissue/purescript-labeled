@@ -2,7 +2,8 @@ module Data.Iterated where
 
 import Prelude
 
-import Control.Category.Tensor (class Associative, class Tensor, Iso)
+import Control.Category.Tensor (class Associative, class Tensor, Iso, runit)
+import Data.Bifunctor (class Bifunctor, rmap)
 import Data.Either (Either(..), either)
 import Data.Profunctor.Strong ((&&&))
 import Data.Symbol (class IsSymbol, SProxy)
@@ -32,7 +33,7 @@ project :: ∀ e t k a r' r.
   SProxy k -> e r -> t a (e r')
 project k = (nest k).bwd
 
-instance iteratedRecord :: LabeledAssociative Record Tuple (->)
+instance labeledAssociativeRecord :: LabeledAssociative Record Tuple (->)
   where
   nest k = { fwd, bwd }
     where
@@ -42,7 +43,7 @@ instance iteratedRecord :: LabeledAssociative Record Tuple (->)
 expandCons :: ∀ k v lt gt. IsSymbol k => Cons k v lt gt => SProxy k -> Variant lt -> Variant gt
 expandCons _ = unsafeCoerce
 
-instance iteratedVariant :: LabeledAssociative Variant Either (->)
+instance labeledAssociativeVariant :: LabeledAssociative Variant Either (->)
   where
   nest k = { fwd, bwd }
     where
@@ -63,16 +64,35 @@ contraElim :: ∀ e t i.
   e () -> i
 contraElim = point.bwd
 
-instance pointedRecord :: LabeledTensor Record Tuple Unit (->)
+singleton :: ∀ e t i k v r.
+  IsSymbol k =>
+  Cons k v () r =>
+  Lacks k () =>
+  Bifunctor t =>
+  LabeledTensor e t i (->) =>
+  SProxy k -> v -> e r
+singleton k = embed k <<< rmap elim <<< runit.bwd
+
+unsingleton :: ∀ e t i k v r.
+  IsSymbol k =>
+  Cons k v () r =>
+  Lacks k () =>
+  Bifunctor t =>
+  LabeledTensor e t i (->) =>
+  SProxy k -> e r -> v
+unsingleton k = project k >>> rmap contraElim >>> runit.fwd
+
+instance labeledTensorRecord :: LabeledTensor Record Tuple Unit (->)
   where
   point = { fwd, bwd }
     where
     fwd = mempty
     bwd = mempty
 
-instance pointedVariant :: LabeledTensor Variant Either Void (->)
+instance labeledTensorVariant :: LabeledTensor Variant Either Void (->)
   where
   point = { fwd, bwd }
     where
     fwd = absurd
     bwd = case_
+

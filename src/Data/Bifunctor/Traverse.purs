@@ -2,80 +2,170 @@ module Data.Bifunctor.Traverse where
 
 import Prelude
 
+import Data.Bifunctor (rmap)
+import Data.Iterated (class LabeledTensor, contraElim, elim, embed, project, singleton, unsingleton)
+import Data.Symbol (class IsSymbol)
 import Data.Bifunctor.Invariant (class Invariant, invmap)
-import Data.Bifunctor.Monoidal (class Semigroupal, class Unital, combine, introduce)
-import Data.Iterated (class LabeledAssociative, class LabeledTensor, embed, point, project)
-import Data.Symbol (class IsSymbol, SProxy(..))
-import Data.Tuple (Tuple(..))
-import Data.Variant (Variant)
-import Data.Variant.Internal (RLProxy(..))
+import Data.Bifunctor.Monoidal (class Monoidal, class Semigroupal, combine, introduce)
 import Prim.Row (class Cons, class Lacks)
-import Record (get)
-import Type.RowList as RL
+import Type.Data.RowList (RLProxy(..))
+import Type.Prelude (class ListToRow, class RowToList)
+import Type.RowList (Cons, Nil, kind RowList) as RL
+import Type.RowList.Extra (head, tail) as RL
 
-class SequenceMonoidal et1 et2 (rl :: RL.RowList) (r :: # Type) (ri :: # Type) (ro :: # Type) p | r -> p ri ro
-  where
-  sequenceMonoidal :: RLProxy rl -> Record r -> p (et1 ri) (et2 ro)
+import Data.Tuple (Tuple)
+import Data.Either (Either)
+import Data.Variant (Variant)
 
-instance emptySequenceMonoidal ::
-  ( Invariant p
-  , Unital (->) u1 u2 Unit p
-  , Semigroupal (->) t1 t2 Tuple p
-  , LabeledTensor et1 t1 u1 (->)
-  , LabeledTensor et2 t2 u2 (->)
-  ) => SequenceMonoidal et1 et2 RL.Nil r () () p
+class Sequence1
+  (r1' :: # Type)
+  (r2' :: # Type)
+  (ro' :: # Type)
+  (rl' :: RL.RowList)
+  (p :: Type -> Type -> Type)
+  | rl' -> p r1' r2' ro'
   where
-  sequenceMonoidal _ _ = invmap point.fwd point.bwd point.fwd point.bwd (introduce unit :: p u1 u2)
+  sequence1 ::
+    ∀ et1 et2 eto
+       t1  t2 to
+       i1  i2 io
+       a1  a2
+       r1  r2 ro
+       k.
+    IsSymbol k =>
 
-instance stepSequenceMonoidal ::
-  ( Invariant p
-  , Semigroupal (->) t1 t2 Tuple p
-  , IsSymbol x
-  , Cons x (p i o) r' r
-  , Cons x i ri' ri
-  , Cons x o ro' ro
-  , Lacks x ro'
-  , Lacks x ri'
-  , LabeledAssociative et1 t1 (->)
-  , LabeledAssociative et2 t2 (->)
-  , SequenceMonoidal et1 et2 rl r ri' ro' p
-  ) => SequenceMonoidal et1 et2 (RL.Cons x (p i o) rl) r ri ro p
+    Cons k a1 r1' r1 =>
+    Lacks k r1' =>
+
+    Cons k a2 r2' r2 =>
+    Lacks k r2' =>
+
+    Cons k (p a1 a2) ro' ro =>
+    Lacks k ro' =>
+
+    LabeledTensor et1 t1 i1 (->) =>
+    LabeledTensor et2 t2 i2 (->) =>
+    LabeledTensor eto to io (->) =>
+
+    ListToRow rl' ro' =>
+
+    Semigroupal (->) t1 t2 to p =>
+    Invariant p =>
+
+    RLProxy (RL.Cons k (p a1 a2) rl') -> eto ro -> p (et1 r1) (et2 r2)
+
+instance sequence1Base ::
+  ( ListToRow RL.Nil ()
+  ) =>
+  Sequence1 () () () RL.Nil p
   where
-  sequenceMonoidal _ r = invmap (embed k) (project k) (embed k) (project k) (combine (Tuple (get k r) rest) :: p (t1 i (et1 ri')) (t2 o (et2 ro')))
+  sequence1 rl = unsingleton k >>> invmap (singleton k) (unsingleton k) (singleton k) (unsingleton k)
     where
-    k :: SProxy x
-    k = SProxy
-    rest :: p (et1 ri') (et2 ro')
-    rest = sequenceMonoidal (RLProxy :: _ rl) r
+    k = RL.head rl
 
-sequenceMux
-  :: ∀ r rl ri ro p
-   . RL.RowToList r rl
-  => SequenceMonoidal Record Record rl r ri ro p
-  => Record r
-  -> p (Record ri) (Record ro)
-sequenceMux = sequenceMonoidal (RLProxy :: _ rl)
+instance sequence1Step ::
+  ( IsSymbol k
 
-sequenceDemux
-  :: ∀ r rl ri ro p
-   . RL.RowToList r rl
-  => SequenceMonoidal Variant Variant rl r ri ro p
-  => Record r
-  -> p (Variant ri) (Variant ro)
-sequenceDemux = sequenceMonoidal (RLProxy :: _ rl)
+  , Cons k a1 r1' r1
+  , Lacks k r1'
 
-sequenceSwitch
-  :: ∀ r rl ri ro p
-   . RL.RowToList r rl
-  => SequenceMonoidal Record Variant rl r ri ro p
-  => Record r
-  -> p (Record ri) (Variant ro)
-sequenceSwitch = sequenceMonoidal (RLProxy :: _ rl)
+  , Cons k a2 r2' r2
+  , Lacks k r2'
 
-sequenceSplice
-  :: ∀ r rl ri ro p
-   . RL.RowToList r rl
-  => SequenceMonoidal Variant Record rl r ri ro p
-  => Record r
-  -> p (Variant ri) (Record ro)
-sequenceSplice = sequenceMonoidal (RLProxy :: _ rl)
+  , Cons k (p a1 a2) ro' ro
+  , Lacks k ro'
+
+  , ListToRow rl' ro'
+
+  , Sequence1 r1' r2' ro' rl' p
+  ) =>
+  Sequence1 r1 r2 ro (RL.Cons k (p a1 a2) rl') p
+  where
+  sequence1 rl = project k >>> rmap (sequence1 $ RL.tail rl) >>> combine >>> invmap (embed k) (project k) (embed k) (project k)
+    where
+    k = RL.head rl
+
+class Sequence
+  (r1 :: # Type)
+  (r2 :: # Type)
+  (ro :: # Type)
+  (rl :: RL.RowList)
+  (p :: Type -> Type -> Type)
+  | rl -> p r1 r2 ro
+  where
+  sequence ::
+    ∀ et1 et2 eto
+       t1  t2 to
+       i1  i2 io.
+
+    LabeledTensor et1 t1 i1 (->) =>
+    LabeledTensor et2 t2 i2 (->) =>
+    LabeledTensor eto to io (->) =>
+
+    ListToRow rl ro =>
+
+    Monoidal (->) t1 i1 t2 i2 to io p =>
+    Invariant p =>
+
+    RLProxy rl -> eto ro -> p (et1 r1) (et2 r2)
+
+instance sequenceBase ::
+  Sequence () () () RL.Nil p
+  where
+  sequence rl = contraElim >>> introduce >>> invmap elim contraElim elim contraElim
+
+instance sequenceStep ::
+  ( IsSymbol k
+
+  , Cons k a1 r1' r1
+  , Lacks k r1'
+
+  , Cons k a2 r2' r2
+  , Lacks k r2'
+
+  , Cons k (p a1 a2) ro' ro
+  , Lacks k ro'
+
+  , ListToRow rl' ro'
+
+  , Sequence1 r1' r2' ro' rl' p
+  ) =>
+  Sequence r1 r2 ro (RL.Cons k (p a1 a2) rl') p
+  where
+  sequence = sequence1
+
+sequenceMux :: ∀ r1 r2 ro rl p.
+  RowToList ro rl =>
+  ListToRow rl ro =>
+  Sequence r1 r2 ro rl p =>
+  Monoidal (->) Tuple Unit Tuple Unit Tuple Unit p =>
+  Invariant p =>
+  Record ro -> p (Record r1) (Record r2)
+sequenceMux = sequence (RLProxy :: _ rl)
+
+sequenceDemux :: ∀ r1 r2 ro rl p.
+  RowToList ro rl =>
+  ListToRow rl ro =>
+  Sequence r1 r2 ro rl p =>
+  Monoidal (->) Either Void Either Void Tuple Unit p =>
+  Invariant p =>
+  Record ro -> p (Variant r1) (Variant r2)
+sequenceDemux = sequence (RLProxy :: _ rl)
+
+sequenceSwitch :: ∀ r1 r2 ro rl p.
+  RowToList ro rl =>
+  ListToRow rl ro =>
+  Sequence r1 r2 ro rl p =>
+  Monoidal (->) Tuple Unit Either Void Tuple Unit p =>
+  Invariant p =>
+  Record ro -> p (Record r1) (Variant r2)
+sequenceSwitch = sequence (RLProxy :: _ rl)
+
+sequenceSplice :: ∀ r1 r2 ro rl p.
+  RowToList ro rl =>
+  ListToRow rl ro =>
+  Sequence r1 r2 ro rl p =>
+  Monoidal (->) Either Void Tuple Unit Tuple Unit p =>
+  Invariant p =>
+  Record ro -> p (Variant r1) (Record r2)
+sequenceSplice = sequence (RLProxy :: _ rl)
