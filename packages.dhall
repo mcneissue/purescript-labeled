@@ -122,7 +122,7 @@ let upstream =
 let overrides = {=}
 
 let additions =
-      { profunctor-extra =
+      { monoidal =
           let manifest =
                 https://raw.githubusercontent.com/mcneissue/purescript-monoidal/v0.10.0/spago.dhall sha256:9052f2ac1e76d2d564da57333276ad2d7e83c8ff0b21d94dbebacfe5dce42489
 
