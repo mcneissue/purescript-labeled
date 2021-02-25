@@ -2,17 +2,16 @@ module Data.Trifunctor.Traverse where
 
 import Prelude
 
-import Data.Bifunctor (rmap)
+import Control.Category.Tensor (grmap)
 import Data.Iterated (class LabeledTensor, contraElim, elim, embed, project, singleton, unsingleton)
 import Data.Symbol (class IsSymbol)
+import Data.Trifunctor.Invariant (class Invariant, invmap)
+import Data.Trifunctor.Monoidal (class Monoidal, class Semigroupal, combine, introduce)
 import Prim.Row (class Cons, class Lacks)
 import Type.Data.RowList (RLProxy(..))
 import Type.Prelude (class ListToRow, class RowToList)
 import Type.RowList (Cons, Nil, kind RowList) as RL
 import Type.RowList.Extra (head, tail) as RL
-
-import Data.Trifunctor.Invariant (class Invariant, invmap)
-import Data.Trifunctor.Monoidal (class Monoidal, class Semigroupal, combine, introduce)
 
 class Sequence1
   (r1' :: # Type)
@@ -86,7 +85,7 @@ instance sequence1Step ::
   ) =>
   Sequence1 r1 r2 r3 ro (RL.Cons k (p a1 a2 a3) rl') p
   where
-  sequence1 rl = project k >>> rmap (sequence1 $ RL.tail rl) >>> combine >>> invmap (embed k) (project k) (embed k) (project k) (embed k) (project k)
+  sequence1 rl = project k >>> grmap (sequence1 $ RL.tail rl) >>> combine >>> invmap (embed k) (project k) (embed k) (project k) (embed k) (project k)
     where
     k = RL.head rl
 
