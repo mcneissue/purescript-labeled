@@ -108,7 +108,7 @@ instance labeledTensorVariant :: LabeledTensor Variant Either Void (->)
     fwd = absurd
     bwd = case_
 
-class Diagonal rl v r | rl -> r
+class Diagonal rl v r | rl -> v r
   where
   ldiagonal :: ∀ e t i p.
     LabeledTensor e t i p =>
