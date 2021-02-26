@@ -6,14 +6,16 @@ import Data.Bifunctor (class Bifunctor, bimap)
 import Data.Profunctor (class Profunctor, dimap)
 import Data.Profunctor.Star (Star)
 
-class Invariant t
-  where
-  invmap :: ∀ a a' b b'. (a -> a') -> (a' -> a) -> (b -> b') -> (b' -> b) -> t a b -> t a' b'
+type Invmap f = ∀ a a' b b'. (a -> a') -> (a' -> a) -> (b -> b') -> (b' -> b) -> f a b -> f a' b'
 
-invmapProfunctor :: ∀ p a a' b b'. Profunctor p => (a -> a') -> (a' -> a) -> (b -> b') -> (b' -> b) -> p a b -> p a' b'
+class Invariant f
+  where
+  invmap :: Invmap f
+
+invmapProfunctor :: ∀ p. Profunctor p => Invmap p
 invmapProfunctor _ g h _ = dimap g h
 
-invmapBifunctor :: ∀ t a a' b b'. Bifunctor t => (a -> a') -> (a' -> a) -> (b -> b') -> (b' -> b) -> t a b -> t a' b'
+invmapBifunctor :: ∀ t. Bifunctor t => Invmap t
 invmapBifunctor f _ h _ = bimap f h
 
 -- Instances
