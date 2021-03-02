@@ -117,20 +117,25 @@ let additions =
 -------------------------------
 -}
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.13.8-20201007/packages.dhall sha256:35633f6f591b94d216392c9e0500207bb1fec42dd355f4fecdfd186956567b6b
+      https://raw.githubusercontent.com/purescript/package-sets/3d9ce6af477b3b4b9a8daa05d152e160b1ea7400/src/packages.dhall sha256:cba8a454a321895e23d4abf3047b8efc40b433b3e497e9f992366a5e01b2f15e
 
 let overrides = {=}
 
 let additions =
-      { monoidal =
-          let manifest =
-                https://raw.githubusercontent.com/mcneissue/purescript-monoidal/v0.10.0/spago.dhall sha256:9052f2ac1e76d2d564da57333276ad2d7e83c8ff0b21d94dbebacfe5dce42489
-
-          in  { repo =
-                  "https://github.com/mcneissue/purescript-monoidal.git"
-              , dependencies = manifest.dependencies
-              , version = "v0.10.0"
-              }
-      }
+  { variant =
+    { dependencies =
+      [ "enums"
+      , "lists"
+      , "maybe"
+      , "partial"
+      , "prelude"
+      , "record"
+      , "tuples"
+      , "unsafe-coerce"
+      ]
+    , repo = "https://github.com/JordanMartinez/purescript-variant.git"
+    , version = "updateTo0.14"
+    }
+  }
 
 in  upstream // overrides // additions

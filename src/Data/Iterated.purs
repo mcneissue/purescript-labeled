@@ -2,33 +2,34 @@ module Data.Iterated where
 
 import Prelude
 
-import Control.Category.Tensor (class Associative, class Cartesian, class Tensor, Iso, diagonal, gbimap, grmap, runit, terminal)
+import Control.Category.Tensor (class Associative, class Cartesian, class Tensor, Iso, diagonal, grmap, runit, terminal)
 import Data.Either (Either(..), either)
 import Data.Newtype (un)
 import Data.Op (Op(..))
 import Data.Profunctor.Strong ((&&&))
-import Data.Symbol (class IsSymbol, SProxy)
+import Data.Symbol (class IsSymbol)
 import Data.Tuple (Tuple, uncurry)
 import Data.Variant (Variant, case_, inj, on)
 import Prim.Row (class Cons, class Lacks)
 import Prim.RowList (class RowToList)
 import Record (delete, get, insert)
+import Type.Prelude (Proxy(..))
 import Type.Row as Row
 import Type.RowList (Cons, Nil) as RowList
-import Type.RowList (class ListToRow, RLProxy(..))
+import Type.RowList (class ListToRow)
 import Type.RowList.Extra (head, tail) as RowList
 import Unsafe.Coerce (unsafeCoerce)
 
-class Associative t p <= LabeledAssociative (e :: # Type -> Type) t p | e -> t
+class Associative t p <= LabeledAssociative (e :: Row Type -> Type) t p | e -> t
   where
-  nest :: ∀ k a r r'. IsSymbol k => Lacks k r' => Cons k a r' r => SProxy k -> Iso p (t a (e r')) (e r)
+  nest :: ∀ k a r r'. IsSymbol k => Lacks k r' => Cons k a r' r => Proxy k -> Iso p (t a (e r')) (e r)
 
 embed :: ∀ e t p k a r' r.
   LabeledAssociative e t p =>
   IsSymbol k =>
   Lacks k r' =>
   Cons k a r' r =>
-  SProxy k -> p (t a (e r')) (e r)
+  Proxy k -> p (t a (e r')) (e r)
 embed k = (nest k).fwd
 
 project :: ∀ e t p k a r' r.
@@ -36,7 +37,7 @@ project :: ∀ e t p k a r' r.
   IsSymbol k =>
   Lacks k r' =>
   Cons k a r' r =>
-  SProxy k -> p (e r) (t a (e r'))
+  Proxy k -> p (e r) (t a (e r'))
 project k = (nest k).bwd
 
 instance flipLabeledAssociative :: LabeledAssociative e t (->) => LabeledAssociative e t Op
@@ -50,7 +51,7 @@ instance labeledAssociativeRecord :: LabeledAssociative Record Tuple (->)
     fwd = uncurry (insert k)
     bwd = get k &&& delete k
 
-expandCons :: ∀ k v lt gt. IsSymbol k => Cons k v lt gt => SProxy k -> Variant lt -> Variant gt
+expandCons :: ∀ k v lt gt. IsSymbol k => Cons k v lt gt => Proxy k -> Variant lt -> Variant gt
 expandCons _ = unsafeCoerce
 
 instance labeledAssociativeVariant :: LabeledAssociative Variant Either (->)
@@ -83,7 +84,7 @@ singleton :: ∀ e t i p k v r.
   Cons k v () r =>
   Lacks k () =>
   LabeledTensor e t i p =>
-  SProxy k -> p v (e r)
+  Proxy k -> p v (e r)
 singleton k = embed k <<< grmap elim <<< runit.bwd
 
 unsingleton :: ∀ e t i p k v r.
@@ -91,8 +92,8 @@ unsingleton :: ∀ e t i p k v r.
   Cons k v () r =>
   Lacks k () =>
   LabeledTensor e t i p =>
-  SProxy k -> p (e r) v
-unsingleton k = project k >>> gbimap identity contraElim >>> runit.fwd
+  Proxy k -> p (e r) v
+unsingleton k = project k >>> grmap contraElim >>> runit.fwd
 
 instance labeledTensorRecord :: LabeledTensor Record Tuple Unit (->)
   where
@@ -114,7 +115,7 @@ class Diagonal rl v r | rl -> v r
     LabeledTensor e t i p =>
     Cartesian t i p =>
     ListToRow rl r =>
-    RLProxy rl -> p v (e r)
+    Proxy rl -> p v (e r)
 
 instance diagonalBase :: Diagonal RowList.Nil v ()
   where
@@ -131,7 +132,7 @@ instance diagonalStep ::
   ) =>
   Diagonal (RowList.Cons k v rl') v r
   where
-  ldiagonal rl = diagonal >>> gbimap identity (ldiagonal $ RowList.tail rl) >>> embed k
+  ldiagonal rl = diagonal >>> grmap (ldiagonal $ RowList.tail rl) >>> embed k
     where
     k = RowList.head rl
 
@@ -144,7 +145,7 @@ ldiagonal' :: ∀ e t i p rl v r.
   LabeledTensor e t i p =>
   Cartesian t i p =>
   p v (e r)
-ldiagonal' = ldiagonal (RLProxy :: _ rl)
+ldiagonal' = ldiagonal (Proxy :: _ rl)
 
 duplicateRecord :: ∀ rl v r.
   ListToRow rl r =>

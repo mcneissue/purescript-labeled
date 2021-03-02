@@ -8,8 +8,8 @@ pkgs.mkShell {
     purescript
     spago
     pulp
+    pscid
     nodejs
     nodePackages.bower
-    nodePackages.purescript-language-server
   ];
 }

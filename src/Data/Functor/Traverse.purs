@@ -8,18 +8,12 @@ import Data.Functor.Monoidal (class Monoidal, class Semigroupal, combine, introd
 import Data.Iterated (class LabeledTensor, contraElim, elim, embed, project, singleton, unsingleton)
 import Data.Symbol (class IsSymbol)
 import Prim.Row (class Cons, class Lacks)
-import Type.Data.RowList (RLProxy(..))
-import Type.Prelude (class ListToRow, class RowToList)
-import Type.RowList (Cons, Nil, kind RowList) as RL
+import Type.Prelude (class ListToRow, class RowToList, Proxy(..))
+import Type.RowList (Cons, Nil, RowList) as RL
 import Type.RowList.Extra (head, tail) as RL
 
-
-class Sequence1
-  (r1' :: # Type)
-  (ro' :: # Type)
-  (rl' :: RL.RowList)
-  (f :: Type -> Type)
-  | rl' -> f r1' ro'
+class Sequence1 :: Row Type -> Row Type -> RL.RowList Type -> (Type -> Type) -> Constraint
+class Sequence1 r1' ro' rl' f | rl' -> f r1' ro'
   where
   sequence1 ::
     ∀ et1 eto
@@ -44,7 +38,7 @@ class Sequence1
     Semigroupal (->) t1 to f =>
     Invariant f =>
 
-    RLProxy (RL.Cons k (f a1) rl') -> eto ro -> f (et1 r1)
+    Proxy (RL.Cons k (f a1) rl') -> eto ro -> f (et1 r1)
 
 instance sequence1Base ::
   ( ListToRow RL.Nil ()
@@ -74,12 +68,8 @@ instance sequence1Step ::
     where
     k = RL.head rl
 
-class Sequence
-  (r1 :: # Type)
-  (ro :: # Type)
-  (rl :: RL.RowList)
-  (f :: Type -> Type)
-  | rl -> f r1 ro
+class Sequence :: Row Type -> Row Type -> RL.RowList Type -> (Type -> Type) -> Constraint
+class Sequence r1 ro rl f | rl -> f r1 ro
   where
   sequence ::
     ∀ et1 eto
@@ -94,7 +84,7 @@ class Sequence
     Monoidal (->) t1 i1 to io f =>
     Invariant f =>
 
-    RLProxy rl -> eto ro -> f (et1 r1)
+    Proxy rl -> eto ro -> f (et1 r1)
 
 instance sequenceBase ::
   Sequence () () RL.Nil f
@@ -136,4 +126,4 @@ sequence' ::
   Monoidal (->) t1 i1 to io f =>
   Invariant f =>
   eto ro -> f (et1 r1)
-sequence' = sequence (RLProxy :: _ rl)
+sequence' = sequence (Proxy :: _ rl)

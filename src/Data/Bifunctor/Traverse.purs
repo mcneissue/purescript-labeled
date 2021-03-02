@@ -8,18 +8,12 @@ import Data.Bifunctor.Monoidal (class Monoidal, class Semigroupal, combine, intr
 import Data.Iterated (class LabeledTensor, contraElim, elim, embed, project, singleton, unsingleton)
 import Data.Symbol (class IsSymbol)
 import Prim.Row (class Cons, class Lacks)
-import Type.Data.RowList (RLProxy(..))
-import Type.Prelude (class ListToRow, class RowToList)
-import Type.RowList (Cons, Nil, kind RowList) as RL
+import Type.Prelude (class ListToRow, class RowToList, Proxy(..))
+import Type.RowList (Cons, Nil, RowList) as RL
 import Type.RowList.Extra (head, tail) as RL
 
-class Sequence1
-  (r1' :: # Type)
-  (r2' :: # Type)
-  (ro' :: # Type)
-  (rl' :: RL.RowList)
-  (p :: Type -> Type -> Type)
-  | rl' -> p r1' r2' ro'
+class Sequence1 :: Row Type -> Row Type -> Row Type -> RL.RowList Type -> (Type -> Type -> Type) -> Constraint
+class Sequence1 r1' r2' ro' rl' p | rl' -> p r1' r2' ro'
   where
   sequence1 ::
     ∀ et1 et2 eto
@@ -48,7 +42,7 @@ class Sequence1
     Semigroupal (->) t1 t2 to p =>
     Invariant p =>
 
-    RLProxy (RL.Cons k (p a1 a2) rl') -> eto ro -> p (et1 r1) (et2 r2)
+    Proxy (RL.Cons k (p a1 a2) rl') -> eto ro -> p (et1 r1) (et2 r2)
 
 instance sequence1Base ::
   ( ListToRow RL.Nil ()
@@ -81,13 +75,8 @@ instance sequence1Step ::
     where
     k = RL.head rl
 
-class Sequence
-  (r1 :: # Type)
-  (r2 :: # Type)
-  (ro :: # Type)
-  (rl :: RL.RowList)
-  (p :: Type -> Type -> Type)
-  | rl -> p r1 r2 ro
+class Sequence :: Row Type -> Row Type -> Row Type -> RL.RowList Type -> (Type -> Type -> Type) -> Constraint
+class Sequence r1 r2 ro rl p | rl -> p r1 r2 ro
   where
   sequence ::
     ∀ et1 et2 eto
@@ -103,7 +92,7 @@ class Sequence
     Monoidal (->) t1 i1 t2 i2 to io p =>
     Invariant p =>
 
-    RLProxy rl -> eto ro -> p (et1 r1) (et2 r2)
+    Proxy rl -> eto ro -> p (et1 r1) (et2 r2)
 
 instance sequenceBase ::
   Sequence () () () RL.Nil p
@@ -149,4 +138,4 @@ sequence' ::
   Monoidal (->) t1 i1 t2 i2 to io p =>
   Invariant p =>
   eto ro -> p (et1 r1) (et2 r2)
-sequence' = sequence (RLProxy :: _ rl)
+sequence' = sequence (Proxy :: _ rl)

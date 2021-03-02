@@ -2,17 +2,17 @@ module Type.RowList.Extra where
 
 import Prelude
 
-import Data.Symbol (SProxy(..))
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Type.RowList (RLProxy(..), Cons)
+import Type.Prelude (Proxy(..))
+import Type.RowList (Cons)
 
-uncons :: ∀ k v r. RLProxy (Cons k v r) -> SProxy k /\ RLProxy r
-uncons _ = SProxy /\ RLProxy
+uncons :: ∀ k v r. Proxy (Cons k v r) -> Proxy k /\ Proxy r
+uncons _ = Proxy /\ Proxy
 
-head :: ∀ k v r. RLProxy (Cons k v r) -> SProxy k
+head :: ∀ k v r. Proxy (Cons k v r) -> Proxy k
 head = fst <<< uncons
 
-tail :: ∀ k v r. RLProxy (Cons k v r) -> RLProxy r
+tail :: ∀ k v r. Proxy (Cons k v r) -> Proxy r
 tail = snd <<< uncons
 
